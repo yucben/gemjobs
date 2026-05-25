@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "vectordash",
+    "title": "AI 创业新星",
+    "description": "最具潜力的 AI 创业公司，正在改变游戏规则",
+    "companySlugs": ["vercel", "linear", "anthropic", "midjourney", "replicate", "modal"]
+  },
+  {
+    "slug": "remote-first",
+    "title": "全员远程办公",
+    "description": "真正拥抱远程文化的公司，工作地点由你决定",
+    "companySlugs": ["gitlab", "automattic", "doist", "zapier", "buffer", "basecamp"]
+  },
+  {
+    "slug": "developer-tools",
+    "title": "开发者工具之星",
+    "description": "为开发者打造一流产品的公司",
+    "companySlugs": ["linear", "vercel", "supabase", "railway", "planetscale", "fly"]
+  },
+  {
+    "slug": "open-source",
+    "title": "开源商业化先锋",
+    "description": "以开源为核心商业模式的创新公司",
+    "companySlugs": ["supabase", "vercel", "gitlab", "planetscale", "astral", "huggingface"]
+  },
+  {
+    "slug": "profitable-bootstrapped",
+    "title": "盈利中的自举公司",
+    "description": "不靠 VC 输血，靠产品力活下来的公司",
+    "companySlugs": ["basecamp", "buffer", "zapier", "doist", "linear", "carrd"]
+  },
+  {
+    "slug": "web3-frontier",
+    "title": "Web3 前沿探索者",
+    "description": "在区块链和去中心化领域推动创新的团队",
+    "companySlugs": ["paradigm", "a16z-crypto", "consensys", "uniswap", "opensea", "magic-eden"]
+  },
+  {
+    "slug": "female-founders",
+    "title": "女性创始人 · 多元领导力",
+    "description": "由女性创始人或联合创始人领导的公司",
+    "companySlugs": ["figma", "notion", "canva", "stitch-fix", "bumble", "23andme"]
+  }
+]
