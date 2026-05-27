@@ -1,8 +1,8 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: "export",
-  basePath: "/gemjobs",
+  output: 'export',
+  basePath: '/gemjobs',
   images: { unoptimized: true },
 };
 

@@ -1,19 +1,20 @@
 'use client';
 
 import { X } from 'lucide-react';
-import type { FilterState } from '@/lib/types';
+import type { CompanyFilters } from '@/lib/types';
 import { getFilterOptions } from '@/lib/data';
-import { getSizeLabel, getFundingLabel, getRemoteLabel } from '@/lib/utils';
+import { getSizeLabel, getFundingLabel } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface FilterPanelProps {
-  filters: Partial<FilterState>;
-  onFilterChange: (filters: Partial<FilterState>) => void;
+  filters: Partial<CompanyFilters>;
+  onFilterChange: (filters: Partial<CompanyFilters>) => void;
 }
 
 const filterOptions = getFilterOptions();
 
 export default function FilterPanel({ filters, onFilterChange }: FilterPanelProps) {
-  const toggleFilter = (key: keyof FilterState, value: string) => {
+  const toggleFilter = (key: keyof CompanyFilters, value: string) => {
     if (key === 'search' || key === 'sort') return;
     const current = (filters[key] as string[]) || [];
     const next = current.includes(value)
@@ -46,15 +47,12 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm text-text">筛选条件</h3>
+        <h3 className="font-semibold text-sm text-foreground">筛选条件</h3>
         {hasFilters && (
-          <button
-            onClick={clearAll}
-            className="text-xs text-primary hover:text-primary-dark flex items-center gap-1"
-          >
+          <Button variant="link" size="sm" onClick={clearAll} className="h-auto p-0 text-xs">
             <X className="w-3 h-3" />
             清除全部
-          </button>
+          </Button>
         )}
       </div>
 
@@ -69,7 +67,7 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
           { value: 'size', label: '公司规模' },
         ]}
         onToggle={(value) =>
-          onFilterChange({ ...filters, sort: value as FilterState['sort'] })
+          onFilterChange({ ...filters, sort: value as CompanyFilters['sort'] })
         }
       />
 
@@ -143,7 +141,7 @@ function FilterGroup({
 
   return (
     <div>
-      <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
         {title}
       </h4>
       <div className="flex flex-wrap gap-1.5">
@@ -152,17 +150,11 @@ function FilterGroup({
           return (
             <button
               key={opt.value}
-              onClick={() => {
-                if (isSingle) {
-                  onToggle(opt.value);
-                } else {
-                  onToggle(opt.value);
-                }
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+              onClick={() => onToggle(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-150 ${
                 active
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
               }`}
             >
               {opt.label}

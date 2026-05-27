@@ -1,3 +1,10 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 export function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -11,24 +18,11 @@ export function formatDate(dateStr: string): string {
   return `${Math.floor(days / 30)} 个月前`;
 }
 
-export function getGemScoreColor(score: number): string {
-  if (score >= 90) return 'text-amber-500';
-  if (score >= 75) return 'text-emerald-500';
-  if (score >= 60) return 'text-blue-500';
-  return 'text-gray-500';
-}
-
-export function getGemScoreBg(score: number): string {
-  if (score >= 90) return 'bg-amber-100 text-amber-800';
-  if (score >= 75) return 'bg-emerald-100 text-emerald-800';
-  if (score >= 60) return 'bg-blue-100 text-blue-800';
-  return 'bg-gray-100 text-gray-800';
-}
-
 export function getSizeLabel(size: string): string {
   const map: Record<string, string> = {
-    '1-50': '1-50 人',
-    '50-200': '50-200 人',
+    '1-10': '1-10 人',
+    '11-50': '11-50 人',
+    '51-200': '51-200 人',
     '200-1000': '200-1000 人',
     '1000+': '1000+ 人',
   };
@@ -43,9 +37,10 @@ export function getFundingLabel(stage: string): string {
     'Series C': 'C 轮',
     'Series D': 'D 轮',
     'Series E': 'E 轮',
-    'Series I': '成熟期',
-    Public: '已上市',
+    IPO: '已上市',
     Bootstrapped: '自举',
+    Public: '已上市',
+    Acquired: '已被收购',
     'N/A': '不适用',
   };
   return map[stage] || stage;
@@ -60,6 +55,9 @@ export function getRemoteLabel(policy: string): string {
   return map[policy] || policy;
 }
 
-export function cn(...classes: (string | boolean | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
+export function getGemScoreBg(score: number): string {
+  if (score >= 90) return 'bg-amber-50 text-amber-700';
+  if (score >= 75) return 'bg-emerald-50 text-emerald-700';
+  if (score >= 60) return 'bg-blue-50 text-blue-700';
+  return 'bg-gray-100 text-gray-500';
 }

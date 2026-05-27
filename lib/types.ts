@@ -32,6 +32,14 @@ export interface Company {
   website?: string;
 }
 
+export interface JobWithCompany extends Job {
+  company: {
+    name: string;
+    slug: string;
+    logo: string;
+  };
+}
+
 export interface Collection {
   slug: string;
   title: string;
@@ -39,7 +47,9 @@ export interface Collection {
   companySlugs: string[];
 }
 
-export interface FilterState {
+export type SortOption = 'recommended' | 'gemScore' | 'newest' | 'size';
+
+export interface CompanyFilters {
   search: string;
   industries: string[];
   sizes: string[];
@@ -47,5 +57,22 @@ export interface FilterState {
   techStack: string[];
   remotePolicy: string[];
   culture: string[];
-  sort: 'recommended' | 'gemScore' | 'newest' | 'size';
+  sort: SortOption;
 }
+
+export interface JobFilters {
+  search: string;
+  techStack: string[];
+  remotePolicy: string[];
+}
+
+export const DEFAULT_COMPANY_FILTERS: CompanyFilters = {
+  search: '',
+  industries: [],
+  sizes: [],
+  fundingStages: [],
+  techStack: [],
+  remotePolicy: [],
+  culture: [],
+  sort: 'recommended',
+};

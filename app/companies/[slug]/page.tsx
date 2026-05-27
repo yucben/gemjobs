@@ -1,16 +1,27 @@
 import { notFound } from 'next/navigation';
-import { getCompanyBySlug, getSimilarCompanies, getAllCompanies } from '@/lib/data';
+import type { Metadata } from 'next';
+import { getCompanyBySlug, getSimilarCompanies, getAllCompaniesList } from '@/lib/data';
 import CompanyDetail from '@/components/CompanyDetail';
 
-export function generateStaticParams() {
-  return getAllCompanies().map((c) => ({ slug: c.slug }));
+interface Props {
+  params: Promise<{ slug: string }>;
 }
 
-export default async function CompanyPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export function generateStaticParams() {
+  return getAllCompaniesList().map((c) => ({ slug: c.slug }));
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const company = getCompanyBySlug(slug);
+  if (!company) return { title: '公司未找到' };
+  return {
+    title: company.name,
+    description: company.description,
+  };
+}
+
+export default async function CompanyPage({ params }: Props) {
   const { slug } = await params;
   const company = getCompanyBySlug(slug);
 

@@ -1,157 +1,181 @@
+import Fuse from 'fuse.js';
+import { cache } from 'react';
 import companies from '@/data/companies.json';
 import collections from '@/data/collections.json';
-import type { Company, Collection, FilterState } from '@/lib/types';
+import type { Company, Collection, CompanyFilters, JobFilters, JobWithCompany } from '@/lib/types';
 
-export function getAllCompanies(): Company[] {
-  return companies as Company[];
+const allCompanies = companies as Company[];
+const allCollections = collections as Collection[];
+
+// ── Fuse.js instances (lazy) ────────────────────────────────
+
+const companyFuse = new Fuse(allCompanies, {
+  keys: [
+    { name: 'name', weight: 4 },
+    { name: 'description', weight: 2 },
+    { name: 'industry', weight: 2 },
+    { name: 'techStack', weight: 3 },
+    { name: 'culture', weight: 1 },
+    { name: 'location', weight: 1 },
+  ],
+  threshold: 0.4,
+  includeScore: true,
+});
+
+function getAllJobs(): JobWithCompany[] {
+  const jobs = allCompanies.flatMap((c) =>
+    c.jobs.map((j) => ({
+      ...j,
+      company: { name: c.name, slug: c.slug, logo: c.logo },
+    })),
+  );
+  jobs.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+  return jobs;
 }
 
-export function getCompanyBySlug(slug: string): Company | undefined {
-  return (companies as Company[]).find((c) => c.slug === slug);
-}
+const allJobsList = getAllJobs();
 
-export function getFilteredCompanies(filters: Partial<FilterState>): Company[] {
-  let result = companies as Company[];
+const jobFuse = new Fuse(allJobsList, {
+  keys: [
+    { name: 'title', weight: 3 },
+    { name: 'company.name', weight: 2 },
+    { name: 'techStack', weight: 3 },
+    { name: 'description', weight: 1 },
+  ],
+  threshold: 0.4,
+});
 
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    result = result.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.description.toLowerCase().includes(q) ||
-        c.industry.toLowerCase().includes(q) ||
-        c.techStack.some((t) => t.toLowerCase().includes(q)) ||
-        c.culture.some((t) => t.toLowerCase().includes(q))
+// ── Company data ────────────────────────────────────────────
+
+export const getFilteredCompanies = cache((filters: Partial<CompanyFilters> = {}): Company[] => {
+  const f = { ...filters };
+
+  // Fuzzy search
+  if (f.search && f.search.trim()) {
+    const results = companyFuse.search(f.search.trim());
+    return applyFilters(
+      results.map((r) => r.item),
+      f,
     );
   }
 
-  if (filters.industries && filters.industries.length > 0) {
-    result = result.filter((c) => filters.industries!.includes(c.industry));
-  }
+  return applyFilters(allCompanies, f);
+});
 
-  if (filters.sizes && filters.sizes.length > 0) {
-    result = result.filter((c) => filters.sizes!.includes(c.size));
-  }
+function applyFilters(rows: Company[], f: Partial<CompanyFilters>): Company[] {
+  let result = rows;
 
-  if (filters.fundingStages && filters.fundingStages.length > 0) {
-    result = result.filter((c) => filters.fundingStages!.includes(c.fundingStage));
+  if (f.industries?.length) {
+    result = result.filter((c) => f.industries!.includes(c.industry));
   }
-
-  if (filters.techStack && filters.techStack.length > 0) {
+  if (f.sizes?.length) {
+    result = result.filter((c) => f.sizes!.includes(c.size));
+  }
+  if (f.fundingStages?.length) {
+    result = result.filter((c) => f.fundingStages!.includes(c.fundingStage));
+  }
+  if (f.techStack?.length) {
     result = result.filter((c) =>
-      filters.techStack!.some((t) =>
-        c.techStack.some((ct) => ct.toLowerCase().includes(t.toLowerCase()))
-      )
+      f.techStack!.some((t) =>
+        c.techStack.some((ct) => ct.toLowerCase().includes(t.toLowerCase())),
+      ),
     );
   }
-
-  if (filters.remotePolicy && filters.remotePolicy.length > 0) {
-    result = result.filter((c) => filters.remotePolicy!.includes(c.remotePolicy));
+  if (f.remotePolicy?.length) {
+    result = result.filter((c) => f.remotePolicy!.includes(c.remotePolicy));
   }
-
-  if (filters.culture && filters.culture.length > 0) {
+  if (f.culture?.length) {
     result = result.filter((c) =>
-      filters.culture!.some((t) =>
-        c.culture.some((ct) => ct.toLowerCase().includes(t.toLowerCase()))
-      )
+      f.culture!.some((t) => c.culture.some((ct) => ct.toLowerCase().includes(t.toLowerCase()))),
     );
   }
 
-  if (filters.sort) {
-    switch (filters.sort) {
-      case 'gemScore':
-        result.sort((a, b) => b.gemScore - a.gemScore);
-        break;
-      case 'newest':
-        result.sort((a, b) => b.founded - a.founded);
-        break;
-      case 'size':
-        result.sort((a, b) => {
-          const sizeOrder: Record<string, number> = {
-            '1000+': 5,
-            '200-1000': 4,
-            '50-200': 3,
-            '1-50': 2,
-          };
-          return (sizeOrder[b.size] || 0) - (sizeOrder[a.size] || 0);
-        });
-        break;
-      case 'recommended':
-      default:
-        result.sort((a, b) => b.gemScore - a.gemScore);
-        break;
+  // Sort
+  const sort = f.sort || 'recommended';
+  switch (sort) {
+    case 'gemScore':
+      result.sort((a, b) => b.gemScore - a.gemScore);
+      break;
+    case 'newest':
+      result.sort((a, b) => b.founded - a.founded);
+      break;
+    case 'size': {
+      const order: Record<string, number> = { '1000+': 5, '200-1000': 4, '51-200': 3, '11-50': 2, '1-10': 1 };
+      result.sort((a, b) => (order[b.size] || 0) - (order[a.size] || 0));
+      break;
     }
+    default:
+      result.sort((a, b) => b.gemScore - a.gemScore);
   }
 
   return result;
 }
 
-export function getAllJobs() {
-  const allJobs = (companies as Company[]).flatMap((c) =>
-    c.jobs.map((j) => ({ ...j, company: { name: c.name, slug: c.slug, logo: c.logo } }))
-  );
-  allJobs.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
-  return allJobs;
-}
+export const getCompanyBySlug = cache((slug: string): Company | undefined => {
+  return allCompanies.find((c) => c.slug === slug);
+});
 
-export function getFilteredJobs(filters: { search?: string; techStack?: string[]; remotePolicy?: string[] }) {
-  let jobs = getAllJobs();
+export const getAllCompaniesList = cache((): Company[] => allCompanies);
 
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    jobs = jobs.filter(
-      (j) =>
-        j.title.toLowerCase().includes(q) ||
-        j.company.name.toLowerCase().includes(q) ||
-        j.techStack.some((t) => t.toLowerCase().includes(q))
-    );
+export const getSimilarCompanies = cache((slug: string, limit = 4): Company[] => {
+  const company = getCompanyBySlug(slug);
+  if (!company) return [];
+  return allCompanies
+    .filter((c) => c.slug !== slug && c.industry === company.industry)
+    .sort((a, b) => b.gemScore - a.gemScore)
+    .slice(0, limit);
+});
+
+// ── Job data ────────────────────────────────────────────────
+
+export const getAllJobsList = cache((): JobWithCompany[] => allJobsList);
+
+export const getFilteredJobs = cache((filters: Partial<JobFilters> = {}): JobWithCompany[] => {
+  let jobs = allJobsList;
+
+  if (filters.search?.trim()) {
+    const results = jobFuse.search(filters.search.trim());
+    jobs = results.map((r) => r.item);
   }
 
-  if (filters.techStack && filters.techStack.length > 0) {
+  if (filters.techStack?.length) {
     jobs = jobs.filter((j) =>
       filters.techStack!.some((t) =>
-        j.techStack.some((jt) => jt.toLowerCase().includes(t.toLowerCase()))
-      )
+        j.techStack.some((jt) => jt.toLowerCase().includes(t.toLowerCase())),
+      ),
     );
   }
 
-  if (filters.remotePolicy && filters.remotePolicy.length > 0) {
+  if (filters.remotePolicy?.length) {
     jobs = jobs.filter((j) => filters.remotePolicy!.includes(j.remotePolicy));
   }
 
   return jobs;
-}
+});
 
-export function getAllCollections(): Collection[] {
-  return collections as Collection[];
-}
+// ── Collections ─────────────────────────────────────────────
 
-export function getCollectionBySlug(slug: string): { collection: Collection; companies: Company[] } | undefined {
-  const collection = (collections as Collection[]).find((c) => c.slug === slug);
-  if (!collection) return undefined;
-  return {
-    collection,
-    companies: (companies as Company[]).filter((c) => collection.companySlugs.includes(c.slug)),
-  };
-}
+export const getAllCollections = cache((): Collection[] => allCollections);
 
-export function getSimilarCompanies(slug: string, limit = 4): Company[] {
-  const company = getCompanyBySlug(slug);
-  if (!company) return [];
-  return (companies as Company[])
-    .filter((c) => c.slug !== slug && c.industry === company.industry)
-    .sort((a, b) => b.gemScore - a.gemScore)
-    .slice(0, limit);
-}
+export const getCollectionBySlug = cache(
+  (slug: string): { collection: Collection; companies: Company[] } | undefined => {
+    const collection = allCollections.find((c) => c.slug === slug);
+    if (!collection) return undefined;
+    return {
+      collection,
+      companies: allCompanies.filter((c) => collection.companySlugs.includes(c.slug)),
+    };
+  },
+);
 
-export function getFilterOptions() {
-  const allCompanies = companies as Company[];
+// ── Filter options ──────────────────────────────────────────
 
+export const getFilterOptions = cache(() => {
   const industries = [...new Set(allCompanies.map((c) => c.industry))].sort();
   const sizes = [...new Set(allCompanies.map((c) => c.size))];
   const fundingStages = [...new Set(allCompanies.map((c) => c.fundingStage))];
-  const allTechStacks = [...new Set(allCompanies.flatMap((c) => c.techStack))].sort();
-  const allCulture = [...new Set(allCompanies.flatMap((c) => c.culture))].sort();
+  const techStacks = [...new Set(allCompanies.flatMap((c) => c.techStack))].sort();
+  const cultures = [...new Set(allCompanies.flatMap((c) => c.culture))].sort();
 
-  return { industries, sizes, fundingStages, techStacks: allTechStacks, cultures: allCulture };
-}
+  return { industries, sizes, fundingStages, techStacks, cultures };
+});
